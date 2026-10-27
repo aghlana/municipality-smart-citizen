@@ -1,5 +1,5 @@
 
-name: Build Android APK
+name: Build Flutter APK
 
 on:
   workflow_dispatch:
@@ -19,6 +19,36 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Find Flutter project
+        id: project
+        shell: bash
+        run: |
+          if [ -f "pubspec.yaml" ]; then
+            PROJECT_DIR="."
+          elif [ -f "citizen_app/pubspec.yaml" ]; then
+            PROJECT_DIR="citizen_app"
+          else
+            PROJECT_FILE=$(find . \
+              -type f \
+              -name pubspec.yaml \
+              -not -path "*/.dart_tool/*" \
+              -not -path "*/build/*" \
+              -not -path "*/.git/*" \
+              -print -quit)
+
+            if [ -z "$PROJECT_FILE" ]; then
+              echo "ERROR: Flutter pubspec.yaml not found."
+              echo "Repository files:"
+              find . -maxdepth 3 -type f | head -100
+              exit 1
+            fi
+
+            PROJECT_DIR=$(dirname "$PROJECT_FILE")
+          fi
+
+          echo "project_dir=$PROJECT_DIR" >> "$GITHUB_OUTPUT"
+          echo "Flutter project found in: $PROJECT_DIR"
+
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
@@ -31,32 +61,21 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Find Flutter project
-        id: project
-        shell: bash
-        run: |
-          if [ -f "citizen_app/pubspec.yaml" ]; then
-            echo "app_dir=citizen_app" >> "$GITHUB_OUTPUT"
-          elif [ -f "pubspec.yaml" ]; then
-            echo "app_dir=." >> "$GITHUB_OUTPUT"
-          else
-            echo "Flutter project not found."
-            find . -name pubspec.yaml -print
-            exit 1
-          fi
+      - name: Flutter version
+        run: flutter --version
 
       - name: Install dependencies
-        working-directory: ${{ steps.project.outputs.app_dir }}
+        working-directory: ${{ steps.project.outputs.project_dir }}
         run: flutter pub get
 
-      - name: Build APK
-        working-directory: ${{ steps.project.outputs.app_dir }}
+      - name: Build release APK
+        working-directory: ${{ steps.project.outputs.project_dir }}
         run: flutter build apk --release
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: municipality-smart-citizen-apk
-          path: ${{ steps.project.outputs.app_dir }}/build/app/outputs/flutter-apk/app-release.apk
+          path: ${{ steps.project.outputs.project_dir }}/build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: error
           retention-days: 14
