@@ -1,0 +1,62 @@
+
+name: Build Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - master
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Find Flutter project
+        id: project
+        shell: bash
+        run: |
+          if [ -f "citizen_app/pubspec.yaml" ]; then
+            echo "app_dir=citizen_app" >> "$GITHUB_OUTPUT"
+          elif [ -f "pubspec.yaml" ]; then
+            echo "app_dir=." >> "$GITHUB_OUTPUT"
+          else
+            echo "Flutter project not found."
+            find . -name pubspec.yaml -print
+            exit 1
+          fi
+
+      - name: Install dependencies
+        working-directory: ${{ steps.project.outputs.app_dir }}
+        run: flutter pub get
+
+      - name: Build APK
+        working-directory: ${{ steps.project.outputs.app_dir }}
+        run: flutter build apk --release
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: municipality-smart-citizen-apk
+          path: ${{ steps.project.outputs.app_dir }}/build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
+          retention-days: 14
