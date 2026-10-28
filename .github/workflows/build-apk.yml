@@ -1,4 +1,5 @@
 
+
 name: Build Flutter APK
 
 on:
@@ -78,4 +79,4 @@ jobs:
           name: municipality-smart-citizen-apk
           path: ${{ steps.project.outputs.project_dir }}/build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 7
