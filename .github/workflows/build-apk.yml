@@ -64,7 +64,17 @@ jobs:
 
       - name: Flutter version
         run: flutter --version
-
+      - name: Generate Android project
+        working-directory: ${{ steps.project.outputs.project_dir }}
+        shell: bash
+        run: |
+          flutter create --platforms=android .
+          echo "Checking Android Gradle files:"
+          find android -maxdepth 3 -type f
+          if [ ! -f android/app/build.gradle ] && [ ! -f android/app/build.gradle.kts ]; then
+            echo "ERROR: Android Gradle file is missing."
+            exit 1
+          fi
       - name: Install dependencies
         working-directory: ${{ steps.project.outputs.project_dir }}
         run: flutter pub get
