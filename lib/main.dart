@@ -221,7 +221,7 @@ class _NewReportPageState extends State<NewReportPage> {
   @override Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('تقديم بلاغ جديد')),
     body: ListView(padding: const EdgeInsets.all(18), children: [
-      const Text('ساعدنا على تحسين مدينتك بإرسال تفاصيل واضحة عن المشكلة.', style: TextStyle(height: 1.6)),
+      const Text('ساعدنا على تحسين مدينتك بإرسال تفاصيل واضحة عن المشكلة.', style: TextStyle(height: 1.6)),        ])),
       const SizedBox(height: 18), TextField(controller: title, decoration: const InputDecoration(labelText: 'عنوان البلاغ', hintText: 'مثال: حفرة أمام المنزل')),
       const SizedBox(height: 12), DropdownButtonFormField<String>(value: category, decoration: const InputDecoration(labelText: 'نوع المشكلة'), items: categories.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(), onChanged: (v) { if (v != null) setState(() => category = v); }),
       const SizedBox(height: 12), TextField(controller: description, maxLines: 5, decoration: const InputDecoration(labelText: 'وصف المشكلة', alignLabelWithHint: true, hintText: 'اذكر التفاصيل وأقرب معلم معروف')),
