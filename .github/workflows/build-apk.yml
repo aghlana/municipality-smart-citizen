@@ -1,3 +1,4 @@
+
 name: Build Flutter APK
 
 on:
@@ -31,12 +32,15 @@ jobs:
               -not -path "*/.dart_tool/*" \
               -not -path "*/build/*" \
               -not -path "*/.git/*" -print -quit)
+
             if [ -z "$PROJECT_FILE" ]; then
               echo "ERROR: Flutter pubspec.yaml not found."
               exit 1
             fi
+
             PROJECT_DIR=$(dirname "$PROJECT_FILE")
           fi
+
           echo "project_dir=$PROJECT_DIR" >> "$GITHUB_OUTPUT"
 
       - name: Setup Java
@@ -51,26 +55,34 @@ jobs:
           channel: stable
           cache: true
 
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Locate and install NDK
+        shell: bash
+        run: |
+          SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          echo "Android SDK: $SDK_ROOT"
+
+          SDKMANAGER=$(find "$SDK_ROOT/cmdline-tools" \
+            -type f -name sdkmanager 2>/dev/null | head -n 1)
+
+          if [ -z "$SDKMANAGER" ]; then
+            echo "ERROR: sdkmanager was not found"
+            find "$SDK_ROOT" -maxdepth 5 -type f -name sdkmanager
+            exit 1
+          fi
+
+          echo "Using: $SDKMANAGER"
+
+          rm -rf "$SDK_ROOT/ndk/28.2.13676358"
+
+          "$SDKMANAGER" --sdk_root="$SDK_ROOT" \
+            --install "ndk;28.2.13676358"
+
       - name: Generate Android project
         working-directory: ${{ steps.project.outputs.project_dir }}
         run: flutter create --platforms=android .
-
-      - name: Install Android NDK with retry
-        shell: bash
-        run: |
-          for attempt in 1 2 3; do
-            echo "NDK installation attempt $attempt"
-            yes | sdkmanager --licenses || true
-            if yes | sdkmanager --install "ndk;28.2.13676358"; then
-              echo "NDK installed successfully"
-              exit 0
-            fi
-            rm -rf "$ANDROID_SDK_ROOT/ndk/28.2.13676358"
-            rm -rf "$ANDROID_SDK_ROOT/.temp/"*
-            sleep 10
-          done
-          echo "NDK installation failed after 3 attempts"
-          exit 1
 
       - name: Install dependencies
         working-directory: ${{ steps.project.outputs.project_dir }}
