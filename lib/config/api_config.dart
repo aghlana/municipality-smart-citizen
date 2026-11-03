@@ -8,7 +8,7 @@ class ApiConfig {
       'https://raw.githubusercontent.com/aghlana/municipality-smart-citizen/main/server_config.json';
 
   static const String defaultUrl =
-      'https://column-treated-zones-referrals.trycloudflare.com/api';
+      'https://checkout-prepared-sending-let.trycloudflare.com/api';
 
   static String baseUrl = defaultUrl;
 
@@ -19,8 +19,8 @@ class ApiConfig {
 
     final prefs = await SharedPreferences.getInstance();
 
-    // استخدام آخر رابط محفوظ عند بدء التطبيق
-    baseUrl = prefs.getString('server_base_url') ?? defaultUrl;
+    // استخدام الرابط الجديد مباشرة
+    baseUrl = defaultUrl;
 
     try {
       final response = await http
@@ -35,12 +35,14 @@ class ApiConfig {
             newUrl.startsWith('https://') &&
             newUrl.endsWith('/api')) {
           baseUrl = newUrl;
-          await prefs.setString('server_base_url', newUrl);
         }
       }
     } catch (_) {
-      // الاحتفاظ بآخر رابط محفوظ عند تعذر تحميل الإعدادات
+      // الاحتفاظ بالرابط الافتراضي الجديد
     }
+
+    // حفظ الرابط الجديد بدلاً من القديم
+    await prefs.setString('server_base_url', baseUrl);
 
     _initialized = true;
   }
