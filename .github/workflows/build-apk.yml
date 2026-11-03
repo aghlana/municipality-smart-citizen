@@ -39,6 +39,7 @@ jobs:
 
             if [ -z "$PROJECT_FILE" ]; then
               echo "ERROR: Flutter pubspec.yaml not found."
+              find . -maxdepth 3 -type f
               exit 1
             fi
 
@@ -64,7 +65,11 @@ jobs:
         shell: bash
         run: |
           echo "Android SDK: $ANDROID_HOME"
-          ls "$ANDROID_HOME/cmdline-tools"
+
+          if [ ! -d "$ANDROID_HOME/cmdline-tools" ]; then
+            echo "ERROR: Android command line tools not found"
+            exit 1
+          fi
 
           SDKMANAGER=$(find "$ANDROID_HOME/cmdline-tools" \
             -type f -name sdkmanager 2>/dev/null | head -n 1)
@@ -74,8 +79,8 @@ jobs:
             exit 1
           fi
 
-          echo "SDK Manager: $SDKMANAGER"
           echo "SDKMANAGER=$SDKMANAGER" >> "$GITHUB_ENV"
+          echo "Found: $SDKMANAGER"
 
       - name: Accept Android licenses
         shell: bash
@@ -104,15 +109,46 @@ jobs:
 
       - name: Generate Android project
         working-directory: ${{ steps.project.outputs.project_dir }}
-        run: flutter create --platforms=android .
+        shell: bash
+        run: |
+          flutter create --platforms=android --overwrite .
+
+          echo "Checking Android project files:"
+          ls -la android
+          ls -la android/app
+
+          if [ ! -f "android/app/build.gradle" ] && \
+             [ ! -f "android/app/build.gradle.kts" ]; then
+            echo "ERROR: Android app Gradle file was not generated"
+            exit 1
+          fi
+
+          echo "Android project files are ready"
 
       - name: Install dependencies
         working-directory: ${{ steps.project.outputs.project_dir }}
         run: flutter pub get
 
+      - name: Clean Flutter project
+        working-directory: ${{ steps.project.outputs.project_dir }}
+        run: flutter clean
+
       - name: Build release APK
         working-directory: ${{ steps.project.outputs.project_dir }}
         run: flutter build apk --release
+
+      - name: Check APK
+        working-directory: ${{ steps.project.outputs.project_dir }}
+        shell: bash
+        run: |
+          APK="build/app/outputs/flutter-apk/app-release.apk"
+
+          if [ ! -f "$APK" ]; then
+            echo "ERROR: APK file was not created"
+            exit 1
+          fi
+
+          ls -lh "$APK"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
