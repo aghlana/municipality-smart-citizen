@@ -176,3 +176,4 @@ jobs:
           path: ${{ steps.project.outputs.project_dir }}/build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: error
           retention-days: 7
+
