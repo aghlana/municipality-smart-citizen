@@ -543,3 +543,4 @@ class ManagerReportsPage extends StatelessWidget {
     );
   }
 }
+
