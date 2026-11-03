@@ -39,7 +39,6 @@ jobs:
 
             if [ -z "$PROJECT_FILE" ]; then
               echo "ERROR: Flutter pubspec.yaml not found."
-              find . -maxdepth 3 -type f
               exit 1
             fi
 
@@ -111,27 +110,46 @@ jobs:
         working-directory: ${{ steps.project.outputs.project_dir }}
         shell: bash
         run: |
-          flutter create --platforms=android --overwrite .
+          echo "Creating Android platform without overwriting Flutter source files"
 
-          echo "Checking Android project files:"
+          flutter create --platforms=android .
+
+          echo "Checking Android files:"
           ls -la android
           ls -la android/app
 
           if [ ! -f "android/app/build.gradle" ] && \
              [ ! -f "android/app/build.gradle.kts" ]; then
-            echo "ERROR: Android app Gradle file was not generated"
+            echo "ERROR: Android Gradle file not found"
             exit 1
           fi
 
-          echo "Android project files are ready"
+          echo "Android project is ready"
 
-      - name: Install dependencies
+      - name: Verify municipality app source
         working-directory: ${{ steps.project.outputs.project_dir }}
-        run: flutter pub get
+        shell: bash
+        run: |
+          if [ ! -f "lib/main.dart" ]; then
+            echo "ERROR: lib/main.dart not found"
+            exit 1
+          fi
+
+          if grep -q "Flutter Demo Home Page" lib/main.dart; then
+            echo "ERROR: Flutter demo source detected"
+            exit 1
+          fi
+
+          echo "Municipality app source verified"
+          head -n 20 lib/main.dart
 
       - name: Clean Flutter project
         working-directory: ${{ steps.project.outputs.project_dir }}
         run: flutter clean
+
+      - name: Install dependencies
+        working-directory: ${{ steps.project.outputs.project_dir }}
+        run: flutter pub get
 
       - name: Build release APK
         working-directory: ${{ steps.project.outputs.project_dir }}
@@ -149,6 +167,7 @@ jobs:
           fi
 
           ls -lh "$APK"
+          echo "APK created successfully"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
